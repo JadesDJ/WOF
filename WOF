@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOF - Wood of Forest</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        nav ul li {
+            display: inline;
+            margin: 0 10px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        section {
+            display: none;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .active {
+            display: block;
+        }
+
+        #product-list {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .product {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px;
+            padding: 10px;
+            width: calc(33% - 20px);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .product img {
+            max-width: 100%;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .product h3 {
+            margin: 0 0 10px;
+        }
+
+        .product p {
+            margin: 0;
+        }
+
+        .product button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #admin-section, #password-section, #login-section {
+            text-align: center;
+        }
+
+        #login-section input, #admin-form input, #password-form input {
+            display: block;
+            margin: 10px auto;
+        }
+
+        .message {
+            color: red;
+            font-size: 0.9em;
+        }
+
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WOF - Wood of Forest</h1>
+        <nav>
+            <ul>
+                <li><a onclick="showSection('home')">Home</a></li>
+                <li><a onclick="showSection('products')">Products</a></li>
+                <li><a onclick="showSection('contact')">Contact</a></li>
+                <li><a onclick="showSection('login-section')">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <section id="home" class="active">
+        <h2>Welcome to WOF</h2>
+        <p>Your one-stop shop for high-quality wooden tables and more.</p>
+    </section>
+    
+    <section id="products">
+        <h2>Our Products</h2>
+        <div id="product-list"></div>
+    </section>
+    
+    <section id="contact">
+        <h2>Contact Us</h2>
+        <p>Email: info@woodofforest.com</p>
+        <p>Phone: 123-456-7890</p>
+    </section>
+
+    <section id="login-section">
+        <h2>Admin Login</h2>
+        <form id="login-form">
+            <label for="admin-password">Password:</label>
+            <input type="password" id="admin-password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p class="message" id="login-message"></p>
+    </section>
+
+    <section id="admin-section">
+        <h2>Admin Panel</h2>
+        <form id="admin-form">
+            <label for="product-name">Product Name:</label>
+            <input type="text" id="product-name" required>
+            
+            <label for="product-description">Product Description:</label>
+            <input type="text" id="product-description" required>
+            
+            <label for="product-image">Product Image URL:</label>
+            <input type="url" id="product-image" required>
+            
+            <label for="product-price">Product Price:</label>
+            <input type="number" id="product-price" required step="0.01" min="0">
+            
+            <button type="submit">Add Product</button>
+        </form>
+
+        <div id="admin-product-list"></div>
+
+        <h3>Change Password</h3>
+        <form id="password-form">
+            <label for="new-password">New Password:</label>
+            <input type="password" id="new-password" required minlength="6">
+            <button type="submit">Change Password</button>
+        </form>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 WOF - Wood of Forest. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let passwordHash = "default_hash"; // The hashed password (default)
+        let salt = "default_salt"; // The salt used for hashing
+
+        // Products
+        const products = [
+            {
+                name: "Oak Dining Table",
+                description: "A sturdy oak dining table, perfect for family meals.",
+                image: "https://via.placeholder.com/150",
+                price: "$499"
+            },
+            {
+                name: "Pine Coffee Table",
+                description: "A beautiful pine coffee table, great for your living room.",
+                image: "https://via.placeholder.com/150",
+                price: "$299"
+            },
+            {
+                name: "Maple Desk",
+                description: "A sleek maple desk, ideal for your home office.",
+                image: "https://via.placeholder.com/150",
+                price: "$399"
+            }
+        ];
+
+        // Hashing and salting functions
+        async function hashPassword(password, salt) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + salt);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return bufferToHex(hash);
+        }
+
+        function bufferToHex(buffer) {
+            return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+        }
+
+        async function generateSalt() {
+            const array = new Uint8Array(16);
+            crypto.getRandomValues(array);
+            return bufferToHex(array);
+        }
+
+        // Initialize default password
+        async function initializePassword() {
+            salt = await generateSalt();
+            passwordHash = await hashPassword("1234", salt);
+            updateScriptContent();
+        }
+
+        // Check password
+        async function checkPassword(password) {
+            const hash = await hashPassword(password, salt);
+            return hash === passwordHash;
+        }
+
+        // Change password
+        async function changePassword(event) {
+            event.preventDefault();
+            const newPassword = document.getElementById('new-password').value;
+            if (newPassword.length < 6) {
+                showMessage("Password must be at least 6 characters long.", "error");
+                return;
+            }
+            salt = await generateSalt();
+            passwordHash = await hashPassword(newPassword, salt);
+            showMessage("Password changed successfully!", "success");
+            event.target.reset();
+            updateScriptContent();
+        }
+
+        // Login
+        async function login(event) {
+            event.preventDefault();
+            const enteredPassword = document.getElementById('admin-password').value;
+            const loginMessage = document.getElementById('login-message');
+            if (await checkPassword(enteredPassword)) {
+                showSection('admin-section');
+                loginMessage.textContent = '';
+            } else {
+                loginMessage.textContent = "Incorrect password!";
+                loginMessage.classList.add('error');
+            }
+        }
+
+        function displayProducts() {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+            products.forEach((product, index) => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+
+                productDiv.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <p>${product.description}</p>
+                    <p><strong>${product.price}</strong></p>
+                    <button onclick="removeProduct(${index})">Delete</button>
+                `;
+
+                productList.appendChild(productDiv);
+            });
+
+            updateScriptContent();
+        }
+
+        function displayAdminProducts() {
+            const adminProductList = document.getElementById('admin-product-list');
+            adminProductList.innerHTML = '';
+            products.forEach((product, index) => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'product';
+
+                productDiv.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <p>${product.description}</p>
+                    <p><strong>${product.price}</strong></p>
+                    <button onclick="removeProduct(${index})">Delete</button>
+                `;
+
+                adminProductList.appendChild(productDiv);
+            });
+
+            updateScriptContent();
+        }
+
+        function addProduct(event) {
+            event.preventDefault();
+            const name = document.getElementById('product-name').value;
+            const description = document.getElementById('product-description').value;
+            const image = document.getElementById('product-image').value;
+            const price = document.getElementById('product-price').value;
+
+            products.push({ name, description, image, price: `$${parseFloat(price).toFixed(2)}` });
+            displayProducts();
+            displayAdminProducts();
+            event.target.reset();
+            showMessage("Product added successfully!", "success");
+        }
+
+        function removeProduct(index) {
+            products.splice(index, 1);
+            displayProducts();
+            displayAdminProducts();
+            showMessage("Product removed successfully!", "success");
+        }
+
+        function updateScriptContent() {
+            const scriptContent = `
+                let passwordHash = "${passwordHash}";
+                let salt = "${salt}";
+                const products = ${JSON.stringify(products, null, 4)};
+            `;
+
+            const scriptTag = document.createElement('script');
+            scriptTag.textContent = scriptContent;
+            document.body.appendChild(scriptTag);
+        }
+
+        function showMessage(message, type) {
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            messageElement.classList.add('message', type);
+            const adminSection = document.getElementById('admin-section');
+            adminSection.insertBefore(messageElement, adminSection.firstChild);
+            setTimeout(() => {
+                messageElement.remove();
+            }, 3000);
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        document.getElementById('admin-form').addEventListener('submit', addProduct);
+        document.getElementById('password-form').addEventListener('submit', changePassword);
+        document.getElementById('login-form').addEventListener('submit', login);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (passwordHash === "default_hash") {
+                await initializePassword();
+            }
+            displayProducts();
+            displayAdminProducts();
+        });
+    </script>
+</body>
+</html>
